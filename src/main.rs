@@ -18,29 +18,47 @@ impl TodoList {
     }
 
     fn parse_args(&mut self, args: Vec<String>) {
-        if args[1] == String::from("add") {
-            if args.len() >= 3 {
-                self.add_item(args);        
+        let command = args[1].clone();
+        match command.as_str() {
+            "add" => {
+                if args.len() >= 3 {
+                    self.add_todo(args);        
+                }
+                else {
+                    panic!("No command after add");
+                }
+            },
+            "show" => {
+                self.show_todos();
+            },
+            "complete" => {
+                let id = args[2].clone();
+                if let Ok(u) = id.parse::<usize>() {
+                    self.complete_todo(u);
+                }
+                else {
+                    println!("Second arg is not a valid usize");
+                }
             }
-            else {
-                panic!("No command after add");
+            "help" => {
+                println!("Commands: add, show, complete, remove, help");
+                println!(r#"todo add "Name of new todo item in quotes""#);
+                println!("todo show  |  Can optionally add todo show complete/incomplete");
+                println!("todo complete Id");
+                println!("todo remove Id");
             }
-        }
-        else if args[1] == String::from("show") {
-            self.get_items();
-            self.display();
-        }
 
-        else {
-            println!("Unrecognized command");
-        }
-        
+            _ => {
+                println!("Unrecognized command");
+            },
+        };
+                    
     }
 
     //need to add to json file
-    fn add_item(&mut self, args: Vec<String>) {
+    fn add_todo(&mut self, args: Vec<String>) {
         println!("Adding");
-        self.get_items(); //brings all items from json to the struct
+        self.get_todos(); //brings all items from json to the struct
                           
         //let mut content = String::new();
         //self.file.as_ref().expect("Cant read").read_to_string(&mut content).unwrap();
@@ -49,40 +67,53 @@ impl TodoList {
         let item = TodoItem::new(self.items.len() + 1, args[2].clone(), None, false);
         self.items.push(item.clone());
         for i in &self.items {
-            println!("items: {:?}", i);
+            //println!("items: {:?}", i);
         }
+        self.post_todos();
+    }
 
-        if !self.items.is_empty() {
-            if let Ok(json) = serde_json::to_string_pretty(&self.items) {
-                //println!("{:?}", json);
-                //gotta fix this path issue to open the file with truncate true so erase everything
-                //in the file so it can be rewritten with the new content + the old content
-                let s = self.path.clone().unwrap();
-                let path = Path::new(&s);
-                self.file = Some(OpenOptions::new().write(true).truncate(true).open(&path).expect("Err opening file"));
-                self.file.as_ref().expect("Cant write to file").write_all(json.as_bytes()).unwrap();
+    fn show_todos(&mut self) {
+        self.get_todos();
+        println!("Showing todos");
+        for todo in &self.items {
+            if todo.completed {
+                println!("[✓]{}: {}", todo.id, todo.title);
+            }
+            else {
+                println!("[✕]{}: {}", todo.id, todo.title);
+            }
+        } 
+    }
+
+    fn complete_todo(&mut self, id: usize) {
+        self.get_todos();
+        for i in 0..self.items.len() {
+            if self.items[i].id == id {
+                self.items[i].completed = true;
+                println!("Completed todo item: {:?}", self.items[i]);
+                self.post_todos();
             }
         }
-        
+
     }
 
     //deserialize the json file
-    fn get_items(&mut self) {
-        //display in completed to incomplete order
-        //display only complete or only incomplete
+    fn get_todos(&mut self) {
+        //show_todos in completed to incomplete order
+        //show_todos only complete or only incomplete
 
         let mut content = String::new();
         self.file.as_ref().expect("Cant read").read_to_string(&mut content).unwrap();
         println!("Content: {}", content);
         if let Ok(todos) = serde_json::from_str::<Vec<TodoItem>>(&content) {
-            println!("Deserializing Multiple: {:?}", todos);
+            //println!("Deserializing Multiple: {:?}", todos);
             for i in todos {
                 //println!("{:?}", i);
                 self.items.push(i);
             }
         }
         else if let Ok(todo) = serde_json::from_str::<TodoItem>(&content) {
-            println!("Deserializing Singular: {:?}", todo);
+            //println!("Deserializing Singular: {:?}", todo);
             self.items.push(todo);
         }
         else if content.is_empty() {
@@ -93,13 +124,16 @@ impl TodoList {
         }
     }
 
-    fn display(&mut self) {
-        println!("Showing todos");
-        for todo in &self.items {
-            println!("[X]{}: {}", todo.id, todo.title);
-        } 
+    fn post_todos(&mut self) {
+        if !self.items.is_empty() {
+            if let Ok(json) = serde_json::to_string_pretty(&self.items) {
+                let s = self.path.clone().unwrap();
+                let path = Path::new(&s);
+                self.file = Some(OpenOptions::new().write(true).truncate(true).open(&path).expect("Err opening file"));
+                self.file.as_ref().expect("Cant write to file").write_all(json.as_bytes()).unwrap();
+            }
+        }
     }
-
 
 }
  
