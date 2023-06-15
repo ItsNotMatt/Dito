@@ -40,6 +40,24 @@ impl TodoList {
                     println!("Second arg is not a valid usize");
                 }
             }
+            "remove" => {
+                self.get_todos();//have to call it before so we can check size or we would have to
+                                 //do it in remove fn
+
+                let id = args[2].clone();
+                if let Ok(u) = id.parse::<usize>() {
+                    if u > self.items.len() || u < 1 {
+                        println!("Id is too high or too low");
+                    }
+                    else {
+                        println!("Removing item");
+                        self.remove_todo(u);
+                    }
+                }
+                else {
+                    println!("Second arg is not a valid usize");
+                }
+            }           
             "help" => {
                 println!("Commands: add, show, complete, remove, help");
                 println!(r#"todo add "Name of new todo item in quotes""#);
@@ -94,7 +112,20 @@ impl TodoList {
                 self.post_todos();
             }
         }
+    }
 
+    fn remove_todo(&mut self, id: usize) {
+        for i in 0..self.items.len() {
+            if self.items[i].id == id {
+                self.items.remove(i);
+
+                for x in 0..self.items.len() {
+                    self.items[x].id = x + 1;
+                }
+                self.post_todos();
+                break
+            }
+        }
     }
 
     //deserialize the json file
@@ -104,7 +135,7 @@ impl TodoList {
 
         let mut content = String::new();
         self.file.as_ref().expect("Cant read").read_to_string(&mut content).unwrap();
-        println!("Content: {}", content);
+        //println!("Content: {}", content);
         if let Ok(todos) = serde_json::from_str::<Vec<TodoItem>>(&content) {
             //println!("Deserializing Multiple: {:?}", todos);
             for i in todos {
