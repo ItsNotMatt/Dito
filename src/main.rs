@@ -1,8 +1,7 @@
-#![allow(dead_code)]
 use std::io::{Write, Read};
 use std::path::Path;
-use std::{env, path::PathBuf};
-use std::fs::{File, OpenOptions, metadata};
+use std::env;
+use std::fs::{File, OpenOptions};
 use serde::{Serialize, Deserialize};
 use serde_json;
 
@@ -50,8 +49,7 @@ impl TodoList {
                 }
             }
             "remove" => {
-                self.get_todos();//have to call it before so we can check size or we would have to
-                                 //do it in remove fn
+                self.get_todos();//have to call it before so we can check size 
 
                 let id = args[2].clone();
                 if let Ok(u) = id.parse::<usize>() {
@@ -82,7 +80,6 @@ impl TodoList {
                     
     }
 
-    //need to add to json file
     fn add_todo(&mut self, args: Vec<String>) {
         self.get_todos(); //brings all items from json to the struct
                           
@@ -211,7 +208,7 @@ fn find_todo(path: &Path) -> Option<File> {
 
 fn main() {
     let mut todo = TodoList {items: vec![], file: None, path: None};
-    let mut dir = env::current_dir().unwrap();
+    let dir = env::current_dir().unwrap();
     let mut dir = dir.to_string_lossy().to_string();
     dir.push_str("/todo.json");
     let path = Path::new(&dir);
@@ -223,7 +220,7 @@ fn main() {
 
     let args: Vec<String> = env::args().collect();
     if args.len() < 2 {
-        println!("Todo Version: 1.0");
+        println!("Dito Version: 1.0");
         std::process::exit(0);
     }
 
@@ -243,7 +240,3 @@ fn main() {
         todo.parse_args(args);
     }
 }
-//todo add item optional<description> optional<-c> (complete)
-//todo complete id
-//todo remove id
-//todo show 
